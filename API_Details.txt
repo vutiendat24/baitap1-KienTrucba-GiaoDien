@@ -1,0 +1,235 @@
+# API Details - Cấu Trúc Đầu Vào / Đầu Ra Định Dạng Chuẩn
+
+## Base URL
+`http://localhost:8080/mangxahoi/api`
+
+---
+
+## 1. Auth API (`/auth`)
+
+### 1.1. Đăng nhập
+- **URL**: `POST /auth/login`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "usernameOrEmail": "dat",
+    "password": "password123"
+  }
+  ```
+- **Trả về (Output)**: JSON `UserResponse`
+  ```json
+  {
+    "userId": 1,
+    "username": "dat",
+    "email": "dat@gmail.com",
+    "fullName": "Dat Nguyen",
+    "avatarUrl": "url_to_avatar",
+    "bio": "Mô tả ngắn",
+    "createdAt": "2026-04-07T08:10:47+07:00",
+    "token": "MjpkYXQ6MDg4MTFm..."
+  }
+  ```
+
+### 1.2. Đăng ký
+- **URL**: `POST /auth/register`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "username": "user1",
+    "email": "user1@gmail.com",
+    "password": "password123",
+    "confirmPassword": "password123",
+    "fullName": "User Name"
+  }
+  ```
+- **Trả về (Output)**: JSON `UserResponse` (Giống Đăng nhập nhưng không có token)
+
+### 1.3. Lấy Profile Người Dùng
+- **URL**: `GET /auth/profile/{userId}`
+- **Nhận vào (Input)**: `userId` truyền qua URL path
+- **Trả về (Output)**: JSON `UserResponse` (Không có trường token)
+
+### 1.4. Cập nhật Profile
+- **URL**: `PUT /auth/profile/{userId}`
+- **Nhận vào (Input)**: `userId` truyền qua path, các Query tham số `fullName`, `bio`, `avatarUrl`
+  - VD: `/auth/profile/1?fullName=Dat&bio=Hello&avatarUrl=img.png`
+- **Trả về (Output)**: JSON `UserResponse` đã được cập nhật
+
+---
+
+## 2. Post API (`/posts`)
+
+**Định dạng `PostResponse` chung cho các API Bài viết:**
+```json
+{
+  "postId": 10,
+  "authorId": 1,
+  "authorUsername": "dat",
+  "authorAvatarUrl": "url_to_avt",
+  "content": "Nội dung bài viết",
+  "postType": "TEXT", // hoặc IMAGE, MIXED
+  "likeCount": 5,
+  "commentCount": 2,
+  "visibility": "PUBLIC", // hoặc PRIVATE, FRIENDS
+  "createdAt": "2026-04-07T09:20:19.289+07:00",
+  "updatedAt": "2026-04-07T09:20:19.289+07:00",
+  "images": [
+     {
+       "imageId": 1,
+       "imageUrl": "https://img.link/1.jpg",
+       "imageName": "1.jpg",
+       "mimeType": "image/jpeg",
+       "imageOrder": 0,
+       "caption": "Mô tả ảnh"
+     }
+  ]
+}
+```
+
+### 2.1. Đăng bài chữ (TEXT)
+- **URL**: `POST /posts/text`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "content": "Đây là bài viết",
+    "visibility": "PUBLIC"
+  }
+  ```
+- **Trả về (Output)**: JSON `PostResponse`
+
+### 2.2. Đăng bài ảnh (IMAGE)
+- **URL**: `POST /posts/image`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "imageUrls": ["https://img.link/1.jpg"],
+    "imageNames": ["1.jpg"], 
+    "mimeTypes": ["image/jpeg"], 
+    "captions": ["Caption"], 
+    "visibility": "PUBLIC"
+  }
+  ```
+- **Trả về (Output)**: JSON `PostResponse`
+
+### 2.3. Đăng bài kết hợp chữ & ảnh (MIXED)
+- **URL**: `POST /posts/mixed`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "content": "Nội dung bài viết",
+    "imageUrls": ["https://img.link/1.jpg"],
+    "imageNames": ["1.jpg"], 
+    "mimeTypes": ["image/jpeg"], 
+    "captions": ["Caption"], 
+    "visibility": "PUBLIC"
+  }
+  ```
+- **Trả về (Output)**: JSON `PostResponse`
+
+### 2.4. Lấy tất cả bài viết
+- **URL**: `GET /posts`
+- **Nhận vào**: Query param `page` (mặc định 1), `size` (mặc định 10)
+- **Trả về**: JSON Array của 1 list các `PostResponse` `[ { ... }, { ... } ]`
+
+### 2.5. Lấy bài viết theo ID
+- **URL**: `GET /posts/{postId}`
+- **Nhận vào**: `postId` qua Path
+- **Trả về**: JSON `PostResponse`
+
+### 2.6. Lấy bài viết của User
+- **URL**: `GET /posts/user/{userId}`
+- **Nhận vào**: `userId` qua Path, với query param `page`, `size`
+- **Trả về**: JSON Array của `PostResponse`
+
+### 2.7. Xóa bài
+- **URL**: `DELETE /posts/{postId}`
+- **Nhận vào**: `postId` qua Path, Thêm Query param `authorId` (`?authorId=1`)
+- **Trả về**: HTTP 204 No Content
+
+---
+
+## 3. Comment API (`/comments`)
+
+**Định dạng `CommentResponse` chung cho các API Bình luận:**
+```json
+{
+  "commentId": 5,
+  "postId": 10,
+  "authorId": 1,
+  "authorUsername": "dat",
+  "authorAvatarUrl": "url_to_avt",
+  "content": "Đây là bình luận",
+  "parentCommentId": null,
+  "likeCount": 2,
+  "createdAt": "2026-04-07T09:20:19+07:00",
+  "updatedAt": "2026-04-07T09:20:19+07:00",
+  "replies": [
+    /* Các CommentResponse con */
+  ]
+}
+```
+
+### 3.1. Thêm bình luận
+- **URL**: `POST /comments/post/{postId}`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "content": "Đây là bình luận mới"
+  }
+  ```
+- **Trả về (Output)**: JSON `CommentResponse`
+
+### 3.2. Trả lời bình luận
+- **URL**: `POST /comments/reply/{commentId}`
+- **Nhận vào (Input)**: JSON Body (Chú ý cần truyền `postId`)
+  ```json
+  {
+    "authorId": 1,
+    "content": "Trả lời bình luận",
+    "postId": 10
+  }
+  ```
+- **Trả về (Output)**: JSON `CommentResponse` (Sẽ có `parentCommentId`)
+
+### 3.3. Lấy tất cả bình luận của 1 Post
+- **URL**: `GET /comments/post/{postId}`
+- **Nhận vào (Input)**: `postId` qua Path, `page`, `size` qua Query
+- **Trả về (Output)**: Mảng JSON các `CommentResponse`
+
+### 3.4. Chỉnh sửa bình luận
+- **URL**: `PUT /comments/{commentId}`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "content": "Nội dung cập nhật"
+  }
+  ```
+- **Trả về (Output)**: JSON `CommentResponse` đã cập nhật
+
+### 3.5. Xóa bình luận
+- **URL**: `DELETE /comments/{commentId}`
+- **Nhận vào (Input)**: `commentId` qua Path, bổ sung `authorId` qua Query (`?authorId=1`)
+- **Trả về (Output)**: `{"status": "success"}`
+
+### 3.6. Lấy số lượng bình luận
+- **URL**: `GET /comments/post/{postId}/count`
+- **Trả về (Output)**: `{"postId": 10, "commentCount": 5}`
+
+---
+
+## 4. Like API (`/likes`)
+
+### 4.1. Thích/Bỏ Thích Bài Viết
+- **URL**: `POST /likes/post/{postId}`
+- **Nhận vào (Input)**: Tham số truy vấn bắt buộc `userId` (`?userId=1`)
+- **Trả về (Output)**: JSON `{"postId": 1, "liked": true}` (hoặc `false` nếu bỏ thích)
+
+### 4.2. Thích/Bỏ Thích Bình Luận
+- **URL**: `POST /likes/comment/{commentId}`
+- **Nhận vào (Input)**: Tham số truy vấn bắt buộc `userId` (`?userId=1`)
+- **Trả về (Output)**: JSON `{"commentId": 1, "liked": true}`
