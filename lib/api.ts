@@ -46,7 +46,8 @@ async function apiCall<T>(
     let errorMessage = `API error: ${response.status}`;
     try {
         const error = await response.json();
-        errorMessage = error.message || errorMessage;
+        // Backend Java returns { "error": "message" }
+        errorMessage = error.error || error.message || errorMessage;
     } catch (e) {
         // ignore
     }
@@ -100,6 +101,7 @@ export const authAPI = {
        localStorage.removeItem('token');
        localStorage.removeItem('userId');
     }
+    // Backend doesn't have a logout endpoint, just clear client state
     return Promise.resolve({ message: "Logged out" });
   }
 };
@@ -144,10 +146,12 @@ export const postAPI = {
       method: 'DELETE',
     }),
 
-  search: (query: string) =>
-    apiCall<SearchResult>(`/posts/search?q=${encodeURIComponent(query)}`, {
-      method: 'GET',
-    }),
+  search: (query: string) => {
+    // Backend PostAPI.java does NOT have a search endpoint yet.
+    // Returning empty results to avoid 404 and app crash.
+    console.warn("Search API is not implemented in Backend yet.");
+    return Promise.resolve({ posts: [], users: [] } as SearchResult);
+  }
 };
 
 // Comment APIs
