@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuth();
-  const [email, setEmail] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
 
@@ -19,16 +19,17 @@ export default function LoginPage() {
     setLocalError('');
     clearError();
 
-    if (!email || !password) {
-      setLocalError('Email and password are required');
+    if (!usernameOrEmail || !password) {
+      setLocalError('Username/Email and password are required');
       return;
     }
 
     try {
-      await login(email, password);
+      await login(usernameOrEmail, password);
       router.push('/feed');
     } catch (err) {
-      setLocalError(error || 'Login failed');
+      // Error is set by AuthContext, just use it from there
+      setLocalError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
@@ -43,15 +44,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                Email Address
+              <label htmlFor="usernameOrEmail" className="block text-sm font-medium text-foreground mb-2">
+                Username or Email
               </label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="usernameOrEmail"
+                type="text"
+                placeholder="username or email"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
                 className="w-full"
                 disabled={isLoading}
               />

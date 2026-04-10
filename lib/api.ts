@@ -8,7 +8,6 @@ import {
   CreateCommentRequest,
   ReplyCommentRequest,
   UpdateCommentRequest,
-  SearchResult,
   AuthResponse,
   LikeResponse,
 } from '@/types';
@@ -34,7 +33,7 @@ async function apiCall<T>(
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`; // Assuming Bearer token auth if present
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await fetch(url, {
@@ -45,10 +44,11 @@ async function apiCall<T>(
   if (!response.ok) {
     let errorMessage = `API error: ${response.status}`;
     try {
-        const error = await response.json();
-        errorMessage = error.message || errorMessage;
+        const errorBody = await response.json();
+        // Backend returns { "error": "..." } format
+        errorMessage = errorBody.error || errorBody.message || errorMessage;
     } catch (e) {
-        // ignore
+        // ignore parse errors
     }
     throw new Error(errorMessage);
   }
@@ -63,13 +63,13 @@ async function apiCall<T>(
 
 // Auth APIs
 export const authAPI = {
-  register: (data: any) =>
+  register: (data: { username: string; email: string; password: string; confirmPassword: string; fullName: string }) =>
     apiCall<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  login: (data: any) =>
+  login: (data: { usernameOrEmail: string; password: string }) =>
     apiCall<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -80,7 +80,7 @@ export const authAPI = {
       method: 'GET',
     }),
 
-  updateProfile: (userId: number, queryParams: string) => // ex: fullName=Dat&bio=Hello&avatarUrl=img.png
+  updateProfile: (userId: number, queryParams: string) =>
     apiCall<User>(`/auth/profile/${userId}?${queryParams}`, {
       method: 'PUT',
     }),
@@ -106,20 +106,26 @@ export const authAPI = {
 
 // Post APIs
 export const postAPI = {
+  create: (data: CreateTextPostRequest | CreateImagePostRequest | CreateMixedPostRequest) =>
+    apiCall<Post>('/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   createTextPost: (data: CreateTextPostRequest) =>
-    apiCall<Post>('/posts/text', {
+    apiCall<Post>('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   createImagePost: (data: CreateImagePostRequest) =>
-    apiCall<Post>('/posts/image', {
+    apiCall<Post>('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   createMixedPost: (data: CreateMixedPostRequest) =>
-    apiCall<Post>('/posts/mixed', {
+    apiCall<Post>('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -134,19 +140,15 @@ export const postAPI = {
       method: 'GET',
     }),
 
-  getUserPosts: (userId: number, page: number = 1, size: number = 10) =>
-    apiCall<Post[]>(`/posts/user/${userId}?page=${page}&size=${size}`, {
-      method: 'GET',
+  update: (id: number, data: { authorId: number; content: string }) =>
+    apiCall<Post>(`/posts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     }),
 
   delete: (id: number, authorId: number) =>
     apiCall<{ message: string }>(`/posts/${id}?authorId=${authorId}`, {
       method: 'DELETE',
-    }),
-
-  search: (query: string) =>
-    apiCall<SearchResult>(`/posts/search?q=${encodeURIComponent(query)}`, {
-      method: 'GET',
     }),
 };
 
@@ -164,8 +166,8 @@ export const commentAPI = {
       body: JSON.stringify(data),
     }),
 
-  getByPostId: (postId: number, page: number = 1, size: number = 10) =>
-    apiCall<Comment[]>(`/comments/post/${postId}?page=${page}&size=${size}`, {
+  getByPostId: (postId: number) =>
+    apiCall<Comment[]>(`/comments/post/${postId}`, {
       method: 'GET',
     }),
 
@@ -188,22 +190,21 @@ export const commentAPI = {
 
 // Like APIs
 export const likeAPI = {
-  likePost: (postId: number, userId: number) =>
+  togglePostLike: (postId: number, userId: number) =>
     apiCall<LikeResponse>(`/likes/post/${postId}?userId=${userId}`, {
       method: 'POST',
     }),
 
-  likeComment: (commentId: number, userId: number) =>
+  toggleCommentLike: (commentId: number, userId: number) =>
     apiCall<LikeResponse>(`/likes/comment/${commentId}?userId=${userId}`, {
       method: 'POST',
     }),
 };
 
-// User APIs
+// User APIs (alias for auth profile endpoints)
 export const userAPI = {
   getById: (id: number) => authAPI.getProfile(id),
-  getProfile: (username: string) => authAPI.getProfile(1),
-  update: (id: number, data: any) => {
+  update: (id: number, data: { fullName?: string; bio?: string; avatarUrl?: string }) => {
      let params = new URLSearchParams();
      if (data.fullName) params.append('fullName', data.fullName);
      if (data.bio) params.append('bio', data.bio);

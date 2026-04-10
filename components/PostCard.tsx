@@ -25,13 +25,16 @@ export default function PostCard({
   isDeleting,
 }: PostCardProps) {
   const { user } = useAuth();
-  const isAuthor = user?.userId === post.authorId;
+  const validUserId = user?.userId ?? (user as any)?.id;
+  const validAuthorId = post.authorId ?? (post as any)?.userId;
+  const isAuthor = validUserId === validAuthorId;
 
   const handleLike = async () => {
+    const validPostId = post.postId ?? (post as any)?.id;
     if (post.isLiked) {
-      onUnlike(post.postId);
+      onUnlike(validPostId);
     } else {
-      onLike(post.postId);
+      onLike(validPostId);
     }
   };
 
@@ -77,7 +80,7 @@ export default function PostCard({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onDelete(post.postId)}
+                onClick={() => onDelete(post.postId ?? (post as any)?.id)}
                 disabled={isDeleting}
                 className="h-8 w-8 p-0 text-destructive hover:text-destructive"
               >
@@ -103,7 +106,7 @@ export default function PostCard({
       {/* Footer */}
       <div className="flex items-center justify-between text-sm text-muted-foreground border-t border-border pt-4">
         <Link
-          href={`/post/${post.postId}`}
+          href={`/post/${post.postId ?? (post as any)?.id}`}
           className="flex items-center gap-2 hover:text-primary transition-colors"
         >
           <MessageCircle className="w-4 h-4" />

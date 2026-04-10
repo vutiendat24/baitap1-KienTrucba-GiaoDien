@@ -59,9 +59,22 @@ export default function FeedPage() {
     setIsSubmitting(true);
     try {
       let newPost;
-      if (imageUrl) {
+      const uId = user.userId ?? (user as any).id;
+      if (imageUrl && content.trim()) {
+        // Both text and image → MIXED post
+        newPost = await postAPI.createMixedPost({ 
+           authorId: uId, 
+           content,
+           imageUrls: [imageUrl],
+           imageNames: ["image"],
+           mimeTypes: ["image/jpeg"],
+           captions: [""],
+           visibility: "PUBLIC"
+        });
+      } else if (imageUrl) {
+        // Image only
         newPost = await postAPI.createImagePost({ 
-           authorId: user.userId, 
+           authorId: uId, 
            imageUrls: [imageUrl],
            imageNames: ["image"],
            mimeTypes: ["image/jpeg"],
@@ -69,8 +82,9 @@ export default function FeedPage() {
            visibility: "PUBLIC"
         });
       } else {
+        // Text only
         newPost = await postAPI.createTextPost({ 
-           authorId: user.userId, 
+           authorId: uId, 
            content,
            visibility: "PUBLIC"
         });
@@ -85,37 +99,27 @@ export default function FeedPage() {
     }
   };
 
-  const handleLike = async (postId: number) => {
+  const handleToggleLike = async (postId: number) => {
     if (!user) return;
+    const uId = user.userId ?? (user as any).id;
     try {
-      await likeAPI.likePost(postId, user.userId);
+      const result = await likeAPI.togglePostLike(postId, uId);
       setPosts(
-        posts.map((post) =>
-          post.postId === postId
-            ? { ...post, isLiked: true, likeCount: post.likeCount + 1 }
-            : post
-        )
+        posts.map((post) => {
+          const pId = post.postId ?? (post as any).id;
+          return pId === postId
+            ? { 
+                ...post, 
+                isLiked: result.liked, 
+                likeCount: result.liked 
+                  ? post.likeCount + 1 
+                  : Math.max(0, post.likeCount - 1) 
+              }
+            : post;
+        })
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to like post');
-    }
-  };
-
-  const handleUnlike = async (postId: number) => {
-    if (!user) return;
-    try {
-      // API Details says Thích/Bỏ Thích dùng chung 1 endpoint POST /likes/post/{postId} và toggle trạng thái
-      // Nhưng frontend component chia thành like/unlike. Ta cũng gọi likeAPI.likePost
-      await likeAPI.likePost(postId, user.userId);
-      setPosts(
-        posts.map((post) =>
-          post.postId === postId
-            ? { ...post, isLiked: false, likeCount: Math.max(0, post.likeCount - 1) }
-            : post
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlike post');
+      setError(err instanceof Error ? err.message : 'Failed to toggle like');
     }
   };
 
@@ -123,9 +127,11 @@ export default function FeedPage() {
     if (!user) return;
     if (!confirm('Are you sure you want to delete this post?')) return;
 
+    const uId = user.userId ?? (user as any).id;
+
     try {
-      await postAPI.delete(postId, user.userId);
-      setPosts(posts.filter((post) => post.postId !== postId));
+      await postAPI.delete(postId, uId);
+      setPosts(posts.filter((post) => (post.postId ?? (post as any).id) !== postId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete post');
     }
@@ -174,16 +180,18 @@ export default function FeedPage() {
               <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
             </div>
           ) : (
-            posts.map((post) => (
+            posts.map((post) => {
+              const pId = post.postId ?? (post as any).id;
+              return (
               <PostCard
-                key={post.postId}
+                key={pId}
                 post={post}
-                onLike={() => handleLike(post.postId)}
-                onUnlike={() => handleUnlike(post.postId)}
-                onDelete={() => handleDeletePost(post.postId)}
+                onLike={() => handleToggleLike(pId)}
+                onUnlike={() => handleToggleLike(pId)}
+                onDelete={() => handleDeletePost(pId)}
                 onEdit={() => handleEditPost(post)}
               />
-            ))
+            )})
           )}
 
           {/* Load More */}

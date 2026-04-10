@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { userAPI, postAPI, likeAPI } from '@/lib/api';
-import { User, Post } from '@/types';
+import { userAPI } from '@/lib/api';
+import { User } from '@/types';
 import Navigation from '@/components/Navigation';
-import PostCard from '@/components/PostCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -18,7 +17,6 @@ export default function ProfilePage() {
   const userId = parseInt(userIdStr, 10);
 
   const [user, setUser] = useState<User | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -30,9 +28,6 @@ export default function ProfilePage() {
         setIsLoading(true);
         const userData = await userAPI.getById(userId);
         setUser(userData);
-
-        const userPosts = await postAPI.getUserPosts(userId);
-        setPosts(Array.isArray(userPosts) ? userPosts : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profile');
       } finally {
@@ -42,50 +37,6 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [userId]);
-
-  const handleLike = async (postId: number) => {
-    if (!currentUser) return;
-    try {
-      await likeAPI.likePost(postId, currentUser.userId);
-      setPosts(
-        posts.map((post) =>
-          post.postId === postId
-            ? { ...post, isLiked: true, likeCount: post.likeCount + 1 }
-            : post
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to like post');
-    }
-  };
-
-  const handleUnlike = async (postId: number) => {
-    if (!currentUser) return;
-    try {
-      await likeAPI.likePost(postId, currentUser.userId);
-      setPosts(
-        posts.map((post) =>
-          post.postId === postId
-            ? { ...post, isLiked: false, likeCount: Math.max(0, post.likeCount - 1) }
-            : post
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlike post');
-    }
-  };
-
-  const handleDeletePost = async (postId: number) => {
-    if (!currentUser) return;
-    if (!confirm('Are you sure you want to delete this post?')) return;
-
-    try {
-      await postAPI.delete(postId, currentUser.userId);
-      setPosts(posts.filter((post) => post.postId !== postId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete post');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -137,15 +88,27 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-card border border-border rounded-lg p-8 mb-8">
           <div className="flex items-start gap-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl font-bold text-primary">
-                {username.charAt(0).toUpperCase()}
-              </span>
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt={user.username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-3xl font-bold text-primary">
+                  {username.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-foreground mb-2">{username}</h1>
-              <p className="text-muted-foreground mb-4">{user.email}</p>
-              {user.bio && <p className="text-foreground">{user.bio}</p>}
+              <h1 className="text-3xl font-bold text-foreground mb-1">{username}</h1>
+              <p className="text-lg font-semibold text-foreground mb-3">{user.fullName}</p>
+              <p className="text-muted-foreground mb-2">{user.email}</p>
+              {user.bio && <p className="text-foreground mb-3">{user.bio}</p>}
+              <p className="text-xs text-muted-foreground">
+                Member since {new Date(user.createdAt).toLocaleDateString()}
+              </p>
               {currentUser?.userId === user.userId && (
                 <Button
                   variant="outline"
@@ -165,26 +128,6 @@ export default function ProfilePage() {
             <p className="text-destructive text-sm">{error}</p>
           </div>
         )}
-
-        {/* Posts */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-foreground">Posts</h2>
-          {posts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No posts yet</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <PostCard
-                key={post.postId}
-                post={post}
-                onLike={() => handleLike(post.postId)}
-                onUnlike={() => handleUnlike(post.postId)}
-                onDelete={currentUser?.userId === user.userId ? handleDeletePost : undefined}
-              />
-            ))
-          )}
-        </div>
       </div>
     </div>
   );

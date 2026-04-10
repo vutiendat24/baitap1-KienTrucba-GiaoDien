@@ -110,16 +110,10 @@ export interface LikeResponse {
   liked: boolean;
 }
 
-// Search types
-export interface SearchResult {
-  posts: Post[];
-  users: User[];
-}
-
-// Pagination
+// Pagination (backend returns plain arrays, this is for future use)
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
   page: number;
-  limit: number; // size in backend
+  size: number;
 }

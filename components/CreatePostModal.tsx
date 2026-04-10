@@ -66,7 +66,7 @@ export default function CreatePostModal({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-xs font-bold text-primary">
-                {user?.username.charAt(0).toUpperCase()}
+                {user?.username?.charAt(0).toUpperCase()}
               </span>
             </div>
             <span className="font-semibold text-foreground">{user?.username}</span>
@@ -82,32 +82,8 @@ export default function CreatePostModal({
           />
 
           {/* Image URL */}
-          <div>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <ImageIcon className="w-4 h-4" />
-              Image URL (optional)
-            </label>
-            <Input
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Image Preview */}
-          {imageUrl && (
-            <div className="relative rounded-lg overflow-hidden max-h-48">
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="w-full h-full object-cover"
-                onError={() => setError('Invalid image URL')}
-              />
-            </div>
-          )}
+          
+         
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">

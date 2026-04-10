@@ -57,96 +57,60 @@
 
 ---
 
-## 2. Post API (`/posts`)
+## 2. Post API (`/api/posts`)
 
 **Định dạng `PostResponse` chung cho các API Bài viết:**
 ```json
 {
-  "postId": 10,
+  "postId": 1,
   "authorId": 1,
   "authorUsername": "dat",
   "authorAvatarUrl": "url_to_avt",
   "content": "Nội dung bài viết",
-  "postType": "TEXT", // hoặc IMAGE, MIXED
   "likeCount": 5,
   "commentCount": 2,
-  "visibility": "PUBLIC", // hoặc PRIVATE, FRIENDS
-  "createdAt": "2026-04-07T09:20:19.289+07:00",
-  "updatedAt": "2026-04-07T09:20:19.289+07:00",
-  "images": [
-     {
-       "imageId": 1,
-       "imageUrl": "https://img.link/1.jpg",
-       "imageName": "1.jpg",
-       "mimeType": "image/jpeg",
-       "imageOrder": 0,
-       "caption": "Mô tả ảnh"
-     }
-  ]
+  "visibility": "PUBLIC", 
+  "createdAt": 1712752421000, 
+  "updatedAt": 1712752421000
 }
 ```
 
-### 2.1. Đăng bài chữ (TEXT)
-- **URL**: `POST /posts/text`
+### 2.1. Đăng bài viết
+- **URL**: `POST /api/posts`
 - **Nhận vào (Input)**: JSON Body
   ```json
   {
     "authorId": 1,
-    "content": "Đây là bài viết",
+    "content": "Đây là bài viết mới",
     "visibility": "PUBLIC"
   }
   ```
 - **Trả về (Output)**: JSON `PostResponse`
 
-### 2.2. Đăng bài ảnh (IMAGE)
-- **URL**: `POST /posts/image`
-- **Nhận vào (Input)**: JSON Body
-  ```json
-  {
-    "authorId": 1,
-    "imageUrls": ["https://img.link/1.jpg"],
-    "imageNames": ["1.jpg"], 
-    "mimeTypes": ["image/jpeg"], 
-    "captions": ["Caption"], 
-    "visibility": "PUBLIC"
-  }
-  ```
-- **Trả về (Output)**: JSON `PostResponse`
-
-### 2.3. Đăng bài kết hợp chữ & ảnh (MIXED)
-- **URL**: `POST /posts/mixed`
-- **Nhận vào (Input)**: JSON Body
-  ```json
-  {
-    "authorId": 1,
-    "content": "Nội dung bài viết",
-    "imageUrls": ["https://img.link/1.jpg"],
-    "imageNames": ["1.jpg"], 
-    "mimeTypes": ["image/jpeg"], 
-    "captions": ["Caption"], 
-    "visibility": "PUBLIC"
-  }
-  ```
-- **Trả về (Output)**: JSON `PostResponse`
-
-### 2.4. Lấy tất cả bài viết
-- **URL**: `GET /posts`
+### 2.2. Lấy tất cả bài viết
+- **URL**: `GET /api/posts`
 - **Nhận vào**: Query param `page` (mặc định 1), `size` (mặc định 10)
-- **Trả về**: JSON Array của 1 list các `PostResponse` `[ { ... }, { ... } ]`
+- **Trả về**: JSON Array của các `PostResponse`
 
-### 2.5. Lấy bài viết theo ID
-- **URL**: `GET /posts/{postId}`
+### 2.3. Lấy bài viết theo ID
+- **URL**: `GET /api/posts/{postId}`
 - **Nhận vào**: `postId` qua Path
 - **Trả về**: JSON `PostResponse`
 
-### 2.6. Lấy bài viết của User
-- **URL**: `GET /posts/user/{userId}`
-- **Nhận vào**: `userId` qua Path, với query param `page`, `size`
-- **Trả về**: JSON Array của `PostResponse`
+### 2.4. Cập nhật bài viết
+- **URL**: `PUT /api/posts/{postId}`
+- **Nhận vào (Input)**: JSON Body
+  ```json
+  {
+    "authorId": 1,
+    "content": "Nội dung đã chỉnh sửa"
+  }
+  ```
+- **Trả về (Output)**: JSON `PostResponse`
 
-### 2.7. Xóa bài
-- **URL**: `DELETE /posts/{postId}`
-- **Nhận vào**: `postId` qua Path, Thêm Query param `authorId` (`?authorId=1`)
+### 2.5. Xóa bài viết
+- **URL**: `DELETE /api/posts/{postId}`
+- **Nhận vào**: `postId` qua Path, với Query param `authorId` (`?authorId=1`)
 - **Trả về**: HTTP 204 No Content
 
 ---

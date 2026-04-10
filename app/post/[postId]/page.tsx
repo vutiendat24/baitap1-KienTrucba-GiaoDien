@@ -44,31 +44,23 @@ export default function PostPage() {
     fetchPost();
   }, [postId]);
 
-  const handleLikePost = async () => {
+  const handleToggleLikePost = async () => {
     if (!post || !user) return;
     try {
-      await likeAPI.likePost(post.postId, user.userId);
+      const result = await likeAPI.togglePostLike(post.postId, user.userId);
       setPost((prev) =>
         prev
-          ? { ...prev, isLiked: true, likeCount: prev.likeCount + 1 }
+          ? { 
+              ...prev, 
+              isLiked: result.liked, 
+              likeCount: result.liked 
+                ? prev.likeCount + 1 
+                : Math.max(0, prev.likeCount - 1) 
+            }
           : null
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to like post');
-    }
-  };
-
-  const handleUnlikePost = async () => {
-    if (!post || !user) return;
-    try {
-      await likeAPI.likePost(post.postId, user.userId);
-      setPost((prev) =>
-        prev
-          ? { ...prev, isLiked: false, likeCount: Math.max(0, prev.likeCount - 1) }
-          : null
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlike post');
+      setError(err instanceof Error ? err.message : 'Failed to toggle like');
     }
   };
 
@@ -76,12 +68,12 @@ export default function PostPage() {
     if (!user) return;
     try {
       if (parentCommentId) {
-        const newComment = await commentAPI.reply(parentCommentId, {
+        await commentAPI.reply(parentCommentId, {
           authorId: user.userId,
           postId: postId,
           content,
         });
-        // Simplistic approach: reload all comments.
+        // Reload all comments to get proper nesting
         const commentsData = await commentAPI.getByPostId(postId);
         setComments(Array.isArray(commentsData) ? commentsData : []);
       } else {
@@ -99,35 +91,31 @@ export default function PostPage() {
     }
   };
 
-  const handleLikeComment = async (commentId: number) => {
+  const handleToggleLikeComment = async (commentId: number) => {
     if (!user) return;
     try {
-      await likeAPI.likeComment(commentId, user.userId);
-      setComments(
-        comments.map((comment) =>
-          comment.commentId === commentId
-            ? { ...comment, isLiked: true, likeCount: comment.likeCount + 1 }
-            : comment
-        )
-      );
+      const result = await likeAPI.toggleCommentLike(commentId, user.userId);
+      // Update comment like state using response
+      const updateCommentLike = (commentList: Comment[]): Comment[] => {
+        return commentList.map((comment) => {
+          if (comment.commentId === commentId) {
+            return { 
+              ...comment, 
+              isLiked: result.liked, 
+              likeCount: result.liked 
+                ? comment.likeCount + 1 
+                : Math.max(0, comment.likeCount - 1) 
+            };
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            return { ...comment, replies: updateCommentLike(comment.replies) };
+          }
+          return comment;
+        });
+      };
+      setComments(updateCommentLike(comments));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to like comment');
-    }
-  };
-
-  const handleUnlikeComment = async (commentId: number) => {
-    if (!user) return;
-    try {
-      await likeAPI.likeComment(commentId, user.userId);
-      setComments(
-        comments.map((comment) =>
-          comment.commentId === commentId
-            ? { ...comment, isLiked: false, likeCount: Math.max(0, comment.likeCount - 1) }
-            : comment
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlike comment');
+      setError(err instanceof Error ? err.message : 'Failed to toggle comment like');
     }
   };
 
@@ -137,7 +125,16 @@ export default function PostPage() {
 
     try {
       await commentAPI.delete(commentId, user.userId);
-      setComments(comments.filter((c) => c.commentId !== commentId));
+      // Remove from list (also check nested replies)
+      const removeComment = (commentList: Comment[]): Comment[] => {
+        return commentList
+          .filter((c) => c.commentId !== commentId)
+          .map((c) => ({
+            ...c,
+            replies: c.replies ? removeComment(c.replies) : [],
+          }));
+      };
+      setComments(removeComment(comments));
       if (post) {
         setPost({ ...post, commentCount: Math.max(0, post.commentCount - 1) });
       }
@@ -212,8 +209,8 @@ export default function PostPage() {
         {/* Post */}
         <PostCard
           post={post}
-          onLike={handleLikePost}
-          onUnlike={handleUnlikePost}
+          onLike={handleToggleLikePost}
+          onUnlike={handleToggleLikePost}
           onDelete={user?.userId === post.authorId ? handleDeletePost : undefined}
         />
 
@@ -223,8 +220,8 @@ export default function PostPage() {
             postId={postId}
             comments={comments}
             onAddComment={handleAddComment}
-            onLikeComment={handleLikeComment}
-            onUnlikeComment={handleUnlikeComment}
+            onLikeComment={handleToggleLikeComment}
+            onUnlikeComment={handleToggleLikeComment}
             onDeleteComment={handleDeleteComment}
             error={error}
           />
